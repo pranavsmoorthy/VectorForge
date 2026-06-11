@@ -3,7 +3,7 @@
 
 #include <vector>
 
-namespace hnsw {
+namespace hierarchial_navigable_small_world {
 namespace vector_base {
     class VectorBase {
         public:
@@ -23,8 +23,8 @@ namespace vector_base {
              * read only
              */
 
-            bool SetCoords(const std::vector<double>& coords);
-            std::vector<double> GetCoords();
+            void SetCoords(const std::vector<double>& coords);
+            const std::vector<double>& GetCoords() const;
             std::size_t GetNumCoords() const;
 
             /**
