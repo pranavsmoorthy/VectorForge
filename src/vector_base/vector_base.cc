@@ -11,7 +11,7 @@ namespace vector_base {
  * No arg constructor:
  * Initializes coordinates with empty double array of size 2
  */
-VectorBase::VectorBase() : coords_(std::vector<double>(2)) {}
+VectorBase::VectorBase() : coords_(std::vector<double>(0)) {}
 
 /**
  * Initial Coordinate Constructor:
@@ -27,7 +27,7 @@ VectorBase::VectorBase(const std::vector<double>& initial_coords)
  * through.
  */
 void VectorBase::SetCoords(const std::vector<double>& coords) {
-    VectorBase::coords_ = coords;
+    this -> coords_ = coords;
 }
 
 /**
@@ -43,7 +43,7 @@ const std::vector<double>& VectorBase::GetCoords() const {
  * Returns the number of coordinates in the VectorBase object
  */
 std::size_t VectorBase::GetNumCoords() const {
-    return VectorBase::coords_.size();
+    return this -> coords_.size();
 }
 
 /**
@@ -87,6 +87,10 @@ VectorBase VectorBase::operator-(const VectorBase& other) const {
  * Returns a reference to the coordinate at specified index 
  */
 double& VectorBase::operator[](std::size_t index) {
+    if (index < 0 || index >= coords_.size()) {
+        throw std::out_of_range("Index is out of bounds");
+    }
+
     return coords_[index];
 }
 
@@ -95,6 +99,10 @@ double& VectorBase::operator[](std::size_t index) {
  * Returns the coordinate at specified index 
  */
 double VectorBase::operator[](std::size_t index) const {
+    if (index < 0 || index >= coords_.size()) {
+        throw std::out_of_range("Index is out of bounds");
+    }
+
     return coords_[index];
 }
 
@@ -109,7 +117,7 @@ double VectorBase::Length() const {
         lengthSquared += coords_[i] * coords_[i];
     }
 
-    return sqrt(lengthSquared);
+    return std::sqrt(lengthSquared);
 }
 
 /**
@@ -128,7 +136,7 @@ double VectorBase::EuclideanDistanceTo(const VectorBase& other) const {
         squared_distance += (coords_[i] - other[i]) * (coords_[i] - other[i]);
     }
 
-    return sqrt(squared_distance);
+    return std::sqrt(squared_distance);
 }
 
 /**
@@ -150,7 +158,7 @@ double VectorBase::CosineSimilarityTo(const VectorBase& other) const {
     denominator = (this -> Length()) * other.Length();
 
     if (denominator == 0) {
-        return 0.0;
+        throw std::logic_error("One or more vectors' length is 0");
     }
 
     return numerator / denominator;
