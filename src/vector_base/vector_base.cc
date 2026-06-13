@@ -55,7 +55,7 @@ VectorBase VectorBase::operator+(const VectorBase& other) const {
         throw std::invalid_argument("Mismatching vector sizes");
     }
 
-    std::vector<double> result_coords(this -> coords_.size());
+    std::vector<double> result_coords(coords_.size());
 
     for (std::size_t i = 0; i < coords_.size(); i++) {
         result_coords[i] = coords_[i] + other.coords_[i];
@@ -155,7 +155,7 @@ double VectorBase::CosineSimilarityTo(const VectorBase& other) const {
         numerator += coords_[i] * other[i];
     }
 
-    denominator = (this -> Length()) * other.Length();
+    denominator = (Length()) * other.Length();
 
     if (denominator == 0) {
         throw std::logic_error("One or more vectors' length is 0");
