@@ -1,4 +1,4 @@
-#include "flat_index.h"
+#include "../include/flat_index.h"
 
 #include <vector>
 #include <stdexcept>
