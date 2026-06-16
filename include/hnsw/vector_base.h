@@ -1,11 +1,28 @@
-#ifndef HNSW_SRC_VECTOR_BASE_H_
-#define HNSW_SRC_VECTOR_BASE_H_
+#ifndef HNSW_INCLUDE_VECTOR_BASE_H_
+#define HNSW_INCLUDE_VECTOR_BASE_H_
 
 #include <vector>
 #include <type_traits>
+#include <stdexcept>
 
 namespace hnsw {
 namespace vector_base {
+
+namespace exceptions {
+
+void ThrowMismatchingVectorSizesException() {
+    throw std::invalid_argument("Mismatching vector sizes");
+}
+
+void ThrowIndexOutOfRangeException() {
+    throw std::out_of_range("Index is out of bounds");
+}
+
+void ThrowZeroLengthException() {
+    throw std::logic_error("One or more vectors' length is 0");
+}
+
+}
 
 /**
  * Acts as a representation of a high dimensional vector.
@@ -103,7 +120,7 @@ class VectorBase {
          */
         VectorBase operator+(const VectorBase& other) const {
             if (Dimensions  != other.GetDimensions()) {
-                throw std::invalid_argument("Mismatching vector sizes");
+                exceptions::ThrowMismatchingVectorSizesException();
             }
 
             std::array<DistanceType, Dimensions> result_coords;
@@ -123,7 +140,7 @@ class VectorBase {
          */
         VectorBase operator-(const VectorBase& other) const {
             if (Dimensions != other.GetDimensions()) {
-                throw std::invalid_argument("Mismatching vector sizes");
+                exceptions::ThrowMismatchingVectorSizesException();
             }
 
             std::array<DistanceType, Dimensions> result_coords;
@@ -142,7 +159,7 @@ class VectorBase {
          */
         double& operator[](std::size_t index) {
             if (index < 0 || index >= Dimensions ) {
-                throw std::out_of_range("Index is out of bounds");
+                exceptions::ThrowIndexOutOfRangeException();
             }
 
             return coords_[index];
@@ -154,7 +171,7 @@ class VectorBase {
          */
         double operator[](std::size_t index) const {
             if (index < 0 || index >= Dimensions ) {
-                throw std::out_of_range("Index is out of bounds");
+                exceptions::ThrowIndexOutOfRangeException();
             }
 
             return coords_[index];
@@ -181,7 +198,7 @@ class VectorBase {
          */
         double EuclideanDistanceTo(const VectorBase& other) const {
             if (Dimensions  != other.GetDimensions()) {
-                throw std::invalid_argument("Mismatching vector sizes");
+                exceptions::ThrowIndexOutOfRangeException();
             }
 
             double squared_distance = 0.0;
@@ -199,7 +216,7 @@ class VectorBase {
          */
         double CosineSimilarityTo(const VectorBase& other) const {
             if (Dimensions  != other.GetDimensions() ) {
-                throw std::invalid_argument("Mismatching vector sizes");
+                exceptions::ThrowMismatchingVectorSizesException();
             }
 
             double numerator = 0.0;
@@ -212,7 +229,7 @@ class VectorBase {
             denominator = (Length()) * other.Length();
 
             if (denominator == 0) {
-                throw std::logic_error("One or more vectors' length is 0");
+                exceptions::ThrowZeroLengthException();
             }
 
             return numerator / denominator;
