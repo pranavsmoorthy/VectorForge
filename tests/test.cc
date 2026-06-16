@@ -47,7 +47,7 @@ TEST_CASE("VectorBase: Mathematical Operators (+ and -)", "[vector_base]") {
 
     SECTION("Subtraction") {
         vector_base::VectorBase<double, double, 2> result = vec1 - vec2;
-        REQUIRE(std::abs(result[0] + 4.0) <= 0.01);
+        REQUIRE(std::abs(result[0] + 2.0) <= 0.01);
         REQUIRE(std::abs(result[1] - 3.0) <= 0.01);
     }
 }
@@ -87,11 +87,11 @@ TEST_CASE("VectorBase: Geometric Formulas", "[vector_base]") {
         REQUIRE(std::abs(vec_x.CosineSimilarityTo(vec_y) - 0.0) <= 0.01);
 
         // 3. Opposite directions (180 degrees apart) -> Similarity = -1.0
-        REQUIRE(std::abs(vec_x.CosineSimilarityTo(vec_neg_x) + 0.01) <= 0.01);
+        REQUIRE(std::abs(vec_x.CosineSimilarityTo(vec_neg_x) + 1) <= 0.01);
 
         // 4. EDGE CASE: Division by zero protection
         vector_base::VectorBase<double, double, 2> zero_vec({0.0, 0.0});
-        REQUIRE(std::abs(vec_x.CosineSimilarityTo(zero_vec) - 0.0) <= 0.1);
+        REQUIRE_THROWS_AS(vec_x.CosineSimilarityTo(zero_vec), std::logic_error);
     }
 }
 
