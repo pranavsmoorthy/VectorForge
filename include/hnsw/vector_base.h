@@ -119,10 +119,6 @@ class VectorBase {
          * first data point and discards the second.
          */
         VectorBase operator+(const VectorBase& other) const {
-            if (Dimensions  != other.GetDimensions()) {
-                exceptions::ThrowMismatchingVectorSizesException();
-            }
-
             std::array<DistanceType, Dimensions> result_coords;
 
             for (std::size_t i = 0; i < Dimensions; i++) {
@@ -139,10 +135,6 @@ class VectorBase {
          * the first data point and discards the second.
          */
         VectorBase operator-(const VectorBase& other) const {
-            if (Dimensions != other.GetDimensions()) {
-                exceptions::ThrowMismatchingVectorSizesException();
-            }
-
             std::array<DistanceType, Dimensions> result_coords;
 
             for (std::size_t i = 0; i < Dimensions ; i++) {
@@ -210,7 +202,7 @@ class VectorBase {
             return std::sqrt(squared_distance);
         }
 
-        double EuclideanDistanceTo(std::array<DistanceType, Dimensions>&& other) {
+        double EuclideanDistanceTo(const std::array<DistanceType, Dimensions>& other) {
             double squared_distance = 0.0;
 
             for (std::size_t i = 0; i < Dimensions ; i++) {
