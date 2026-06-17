@@ -4,69 +4,191 @@
 #include "vector_base.h"
 
 #include <vector>
+#include <stdexcept>
+#include <algorithm>
+#include <queue>
 
 namespace hnsw {
 namespace flat_index {
+
+namespace exceptions {
+
+}
 
 /**
  * This is meant for testing. The class will be representing a linear search
  * and will be used to compare against the final HNSW graph.
  */
+template <typename DataType, typename DistanceType, std::size_t Dimensions>
 class FlatIndex {
     public:
+        //Rule of 5:
         /**
-         * Constructor:
-         * Single constructor that takes the size of the VectorBase objects,
-         * which will be enforced.
+         * Destructor:
+         * Goes through the data vector an removes all pointers to free the 
+         * memory
          */
-
-        explicit FlatIndex(std::size_t vector_size);
-
-        /**
-         * Rule of 5:
-         * 1. Destructor - Frees the resource
-         * 2. Copy Constructor - Creates deep copy of object
-         * 3; Copy Assignment - Overwrites existing via deep copy
-         * 4. Move Constructor - Transfer ownership of resources from temporary
-         *    object to an new one without copying
-         * 5. Move Assignment - Transfer ownership of resources from a 
-         *    temporary object to an existing one
-         */
-
-        ~FlatIndex();
-        FlatIndex(const FlatIndex& other);
-        FlatIndex& operator=(const FlatIndex& other);
-        FlatIndex(FlatIndex&& other) noexcept;
-        FlatIndex& operator=(FlatIndex&& other) noexcept;
+        ~FlatIndex() {
+            for (vector_base::VectorBase<DataType, DistanceType, Dimensions>* v 
+                : data_) {
+                    delete v;
+            }
+        }
 
         /**
-         * Getters and Setters:
-         * One getter, which returns the data of the FlatIndex. AddData adds a 
-         * pointer to the underlying data vector.
+         * Copy Constructor:
+         * Goes through the other object, sets the size constraint, and goes through
+         * data vector, creates a new copy of every VectorBase object and pushes it to
+         * current data vector
          */
+        FlatIndex(const FlatIndex<DataType, DistanceType, Dimensions>& other) {
+            data_.reserve(other.data_.size());
 
-        const std::vector<vector_base::VectorBase*>& GetData() const;
-        void AddData(const vector_base::VectorBase& vector_reference);
+            for (vector_base::VectorBase<DataType, DistanceType, Dimensions>* v 
+                : other.data_) {
+                    data_.push_back(new vector_base::VectorBase(*v));
+            }
+        }
+
+        /**
+         * Copy Assignment:
+         * Overrides the = operator. Deletes all pre existing data, replaces 
+         * the size constraints, and then repopulates the current data array 
+         * with the data in the other object
+         */
+        FlatIndex<DataType, DistanceType, Dimensions>& operator=(
+            const FlatIndex<DataType, DistanceType, Dimensions>& other) {
+                if (this == &other) {
+                    return *this;
+                }
+
+                for (vector_base::
+                    VectorBase<DataType, DistanceType, Dimensions>* v : data_) {
+                        delete v;
+                }
+
+                data_.clear();
+
+                for (vector_base::
+                    VectorBase<DataType, DistanceType, Dimensions>* v : other.data_) {
+                        data_.push_back(new vector_base::VectorBase(*v));
+                }
+
+                return *this;
+        }
+
+        /**
+         * Move Constructor:
+         * Sets current size constraint to other size constraint, then adds 
+         * shallow copies of the other data to current data vector array, 
+         * replaces the data with null pointers
+         */
+        FlatIndex(
+            FlatIndex<DataType, DistanceType, Dimensions>&& other) noexcept : 
+                data_(std::move(other.data_)) {}
+
+        /**
+         * Move Assignment:
+         * Clears out current data vector, sets the size constraint, and 
+         * repopulates the data vector
+         */
+        FlatIndex& operator=(
+            FlatIndex<DataType, DistanceType, Dimensions>&& other) noexcept {
+                if (this == &other) {
+                    return *this;
+                }
+
+                for (vector_base::
+                    VectorBase<DataType, DistanceType, Dimensions>* v : data_) {
+                    delete v;
+                }
+
+                data_ = std::move(other.data_);
+
+                return *this;
+        }
+        
+        //Getters and Setters:
+        /**
+         * Data Getter:
+         * Returns data vector
+         */
+        const std::vector<vector_base::
+            VectorBase<DataType, DistanceType, Dimensions>*>& GetData() const {
+                return data_;
+        }
+
+        /**
+         * Number of Coordinates Getter:
+         * Returns the number of coordinates in the VectorBase object
+         */
+        std::size_t GetDimensions() const {
+            return Dimensions;
+        }
+
+        /**
+         * Data Adder:
+         * Takes a reference to a VectorBase object, creates a pointer out of that
+         * reference, and adds it to the data vector. Throws an error if the 
+         * number of coordinates in the vector object differs from the size 
+         * constraint
+         */
+        void AddData(
+            const vector_base::VectorBase<DataType, DistanceType, Dimensions>& 
+            vector_reference) {
+                if (vector_reference.GetDimensions() != Dimensions) {
+                    throw std::invalid_argument("Mismatching vector sizes"); 
+                }
+
+                data_.push_back(new vector_base::VectorBase(vector_reference));
+        }
 
         /**
          * Search:
-         * Performs a linear search on the data. This is mainly for testing and
-         * acts as a benchmark for the HNSW graph to compare against.
+         * Performs a linear search on the data vector looking for the k nearest 
+         * vectors to the query. For testing/benchmarking purposes
          */
+        std::vector<DataType> Search(
+            const std::array<DistanceType, Dimensions>& query, 
+            std::size_t k) const {
+                if (k == 0 || data_.empty()) {
+                    return {};
+                }
 
-        std::vector<vector_base::VectorBase> Search(
-            const vector_base::VectorBase& query, std::size_t k) const;
+                std::priority_queue<std::pair<
+                    double, vector_base::VectorBase<
+                        DataType, DistanceType, Dimensions>*>> queue;
+
+                for (vector_base::VectorBase<DataType, DistanceType, Dimensions>* 
+                    v : data_) {
+                        double distance = v -> EuclideanDistanceTo(query);
+                        queue.push({distance, v});
+
+                        if (queue.size() > k) {
+                            queue.pop();
+                        }
+                }
+
+                std::vector<DataType> results;
+                results.reserve(k);
+
+                while (!queue.empty()) {
+                    results.push_back((*queue.top().second).GetData());
+                    queue.pop();
+                }
+
+                std::reverse(results.begin(), results.end());
+
+                return results;
+        }
     
     private:
         /**
-         * The size the vectors must be in order to be added to the data vector
-         */
-        std::size_t size_constraint_;
-
-        /**
          * The data vector
          */
-        std::vector<vector_base::VectorBase*> data_;
+        std::vector<
+            vector_base::VectorBase<DataType, DistanceType, Dimensions>*
+            > data_;
 };
 
 };

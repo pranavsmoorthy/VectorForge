@@ -4,6 +4,7 @@
 #include <vector>
 #include <type_traits>
 #include <stdexcept>
+#include <cmath>
 
 namespace hnsw {
 namespace vector_base {
@@ -48,10 +49,7 @@ class VectorBase {
          * Assigns data. Leaves coordinates empty
          */
         explicit VectorBase(
-            const DataType& initial_data_) : data_(initial_data_) {
-                std::array<DistanceType, Dimensions> initial_data;
-                data_ = initial_data;
-            }
+            const DataType& initial_data_) : data_(initial_data_) {}
         
         /**
          * Initial Coordinate constructor:
@@ -149,7 +147,7 @@ class VectorBase {
          * Array Operator Overload:
          * Returns a reference to the coordinate at specified index 
          */
-        double& operator[](std::size_t index) {
+        DistanceType& operator[](std::size_t index) {
             if (index < 0 || index >= Dimensions ) {
                 exceptions::ThrowIndexOutOfRangeException();
             }
@@ -161,7 +159,7 @@ class VectorBase {
          * Array Operator Overload:
          * Returns the coordinate at specified index 
          */
-        double operator[](std::size_t index) const {
+        DistanceType operator[](std::size_t index) const {
             if (index < 0 || index >= Dimensions ) {
                 exceptions::ThrowIndexOutOfRangeException();
             }
