@@ -22,6 +22,9 @@ namespace exceptions {
 template <typename DataType, typename DistanceType, std::size_t Dimensions>
 class FlatIndex {
     public:
+        //Default Constructor
+        FlatIndex() {}
+
         //Rule of 5:
         /**
          * Destructor:
@@ -46,7 +49,8 @@ class FlatIndex {
 
             for (vector_base::VectorBase<DataType, DistanceType, Dimensions>* v 
                 : other.data_) {
-                    data_.push_back(new vector_base::VectorBase(*v));
+                    data_.push_back(new vector_base::
+                        VectorBase<DataType, DistanceType, Dimensions>(*v));
             }
         }
 
@@ -71,7 +75,8 @@ class FlatIndex {
 
                 for (vector_base::
                     VectorBase<DataType, DistanceType, Dimensions>* v : other.data_) {
-                        data_.push_back(new vector_base::VectorBase(*v));
+                        data_.push_back(new vector_base::
+                            VectorBase<DataType, DistanceType, Dimensions>(*v));
                 }
 
                 return *this;
@@ -128,19 +133,17 @@ class FlatIndex {
 
         /**
          * Data Adder:
-         * Takes a reference to a VectorBase object, creates a pointer out of that
-         * reference, and adds it to the data vector. Throws an error if the 
-         * number of coordinates in the vector object differs from the size 
-         * constraint
+         * Takes a reference to a VectorBase object, creates a pointer out of 
+         * that reference, and adds it to the data vector. Throws an error if 
+         * the number of coordinates in the vector object differs from the 
+         * size constraint
          */
         void AddData(
             const vector_base::VectorBase<DataType, DistanceType, Dimensions>& 
             vector_reference) {
-                if (vector_reference.GetDimensions() != Dimensions) {
-                    throw std::invalid_argument("Mismatching vector sizes"); 
-                }
-
-                data_.push_back(new vector_base::VectorBase(vector_reference));
+                data_.push_back(new vector_base::
+                    VectorBase<DataType, DistanceType, Dimensions>(
+                        vector_reference));
         }
 
         /**

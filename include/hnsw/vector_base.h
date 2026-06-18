@@ -11,10 +11,6 @@ namespace vector_base {
 
 namespace exceptions {
 
-void ThrowMismatchingVectorSizesException() {
-    throw std::invalid_argument("Mismatching vector sizes");
-}
-
 void ThrowIndexOutOfRangeException() {
     throw std::out_of_range("Index is out of bounds");
 }
@@ -215,10 +211,6 @@ class VectorBase {
          * Returns the cosine similarity of two vectors
          */
         double CosineSimilarityTo(const VectorBase& other) const {
-            if (Dimensions  != other.GetDimensions() ) {
-                exceptions::ThrowMismatchingVectorSizesException();
-            }
-
             double numerator = 0.0;
             double denominator = 0.0;
 
