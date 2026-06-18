@@ -40,7 +40,7 @@ class FlatIndex {
          * data vector, creates a new copy of every VectorBase object and pushes it to
          * current data vector
          */
-        FlatIndex(const FlatIndex<DataType, DistanceType, Dimensions>& other) {
+        FlatIndex(const FlatIndex& other) {
             data_.reserve(other.data_.size());
 
             for (vector_base::VectorBase<DataType, DistanceType, Dimensions>* v 
@@ -56,26 +56,25 @@ class FlatIndex {
          * the size constraints, and then repopulates the current data array 
          * with the data in the other object
          */
-        FlatIndex<DataType, DistanceType, Dimensions>& operator=(
-            const FlatIndex<DataType, DistanceType, Dimensions>& other) {
-                if (this == &other) {
-                    return *this;
-                }
-
-                for (vector_base::
-                    VectorBase<DataType, DistanceType, Dimensions>* v : data_) {
-                        delete v;
-                }
-
-                data_.clear();
-
-                for (vector_base::
-                    VectorBase<DataType, DistanceType, Dimensions>* v : other.data_) {
-                        data_.push_back(new vector_base::
-                            VectorBase<DataType, DistanceType, Dimensions>(*v));
-                }
-
+        FlatIndex& operator=(const FlatIndex& other) {
+            if (this == &other) {
                 return *this;
+            }
+
+            for (vector_base::
+                VectorBase<DataType, DistanceType, Dimensions>* v : data_) {
+                    delete v;
+            }
+
+            data_.clear();
+
+            for (vector_base::
+                VectorBase<DataType, DistanceType, Dimensions>* v : other.data_) {
+                    data_.push_back(new vector_base::
+                        VectorBase<DataType, DistanceType, Dimensions>(*v));
+            }
+
+            return *this;
         }
 
         /**
@@ -84,29 +83,27 @@ class FlatIndex {
          * shallow copies of the other data to current data vector array, 
          * replaces the data with null pointers
          */
-        FlatIndex(
-            FlatIndex<DataType, DistanceType, Dimensions>&& other) noexcept : 
-                data_(std::move(other.data_)) {}
+        FlatIndex(FlatIndex&& other) noexcept 
+            : data_(std::move(other.data_)) {}
 
         /**
          * Move Assignment:
          * Clears out current data vector, sets the size constraint, and 
          * repopulates the data vector
          */
-        FlatIndex& operator=(
-            FlatIndex<DataType, DistanceType, Dimensions>&& other) noexcept {
-                if (this == &other) {
-                    return *this;
-                }
-
-                for (vector_base::
-                    VectorBase<DataType, DistanceType, Dimensions>* v : data_) {
-                    delete v;
-                }
-
-                data_ = std::move(other.data_);
-
+        FlatIndex& operator=(FlatIndex&& other) noexcept {
+            if (this == &other) {
                 return *this;
+            }
+
+            for (vector_base::
+                VectorBase<DataType, DistanceType, Dimensions>* v : data_) {
+                delete v;
+            }
+
+            data_ = std::move(other.data_);
+
+            return *this;
         }
         
         //Getters and Setters:

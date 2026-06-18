@@ -40,7 +40,7 @@ class Node {
         ~Node() {
             delete data_;
             
-            for (Node<DataType, DistanceType, Dimensions, MaxConnections>* n : adjacency_set_) {
+            for (Node* n : adjacency_set_) {
                 (*n).adjacency_set_.erase(this);
             }
 
@@ -76,28 +76,26 @@ class Node {
          * adjacency set with the other Node's adjacency set and replaces the
          * data
          */
-        Node<DataType, DistanceType, Dimensions, MaxConnections>& operator=(
-            Node<DataType, DistanceType, Dimensions, MaxConnections>&& other) 
-            noexcept {
-                if (this == &other) {
-                    return *this;
-                }
-
-                delete data_;
-                for (Node* n : adjacency_set_) {
-                    n->adjacency_set_.erase(this);
-                }
-
-                data_ = other.data_;
-                adjacency_set_ = std::move(other.adjacency_set_);
-                other.data_ = nullptr;
-
-                for (Node* n : adjacency_set_) {
-                    n -> adjacency_set_.erase(&other);
-                    n -> adjacency_set_.insert(this);
-                }
-
+        Node& operator=(Node&& other) noexcept {
+            if (this == &other) {
                 return *this;
+            }
+
+            delete data_;
+            for (Node* n : adjacency_set_) {
+                n->adjacency_set_.erase(this);
+            }
+
+            data_ = other.data_;
+            adjacency_set_ = std::move(other.adjacency_set_);
+            other.data_ = nullptr;
+
+            for (Node* n : adjacency_set_) {
+                n -> adjacency_set_.erase(&other);
+                n -> adjacency_set_.insert(this);
+            }
+
+            return *this;
         }
 
         //Getters and Setters
@@ -136,25 +134,23 @@ class Node {
          * Add Connections: 
          * Adds this node to the other node's adjacency set, and vice versa
          */
-        void AddConnection(Node<
-            DataType, DistanceType, Dimensions, MaxConnections>& other) {
-                if (
-                    adjacency_set_.size() == MaxConnections || 
-                    other.adjacency_set_.size() == MaxConnections
-                ) {
-                    exceptions::ThrowMaxConnectionsReached();
-                } 
+        void AddConnection(Node& other) {
+            if (
+                adjacency_set_.size() == MaxConnections || 
+                other.adjacency_set_.size() == MaxConnections
+            ) {
+                exceptions::ThrowMaxConnectionsReached();
+            } 
 
-                adjacency_set_.insert(&other);
-                other.adjacency_set_.insert(this);
+            adjacency_set_.insert(&other);
+            other.adjacency_set_.insert(this);
         }
 
         /**
          * Sever Connections:
          * Removes this node from other node's adjacency set, and vice versa
          */
-        void SeverConnection(Node<
-            DataType, DistanceType, Dimensions, MaxConnections>& other) {
+        void SeverConnection(Node& other) {
                 adjacency_set_.erase(&other);
                 other.adjacency_set_.erase(this);
         }
@@ -170,7 +166,7 @@ class Node {
          * Adjacency List:
          * The Node's connection in the graph
          */
-        std::set<Node<DataType, DistanceType, Dimensions, MaxConnections>*> adjacency_set_;
+        std::set<Node*> adjacency_set_;
 };
 
 

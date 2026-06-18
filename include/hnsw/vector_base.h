@@ -129,7 +129,7 @@ class VectorBase {
          * the first data point and discards the second.
          */
         VectorBase operator-(const VectorBase& other) const {
-            std::array<DistanceType, Dimensions> result_coords;
+            std::array<DistanceType, Dimensions> result_coords; 
 
             for (std::size_t i = 0; i < Dimensions ; i++) {
                 result_coords[i] = coords_[i] - other[i];
