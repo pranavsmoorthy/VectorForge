@@ -29,7 +29,7 @@ class Node {
          * Constructor:
          * Takes a VectorBase as the data point it holds
          */
-        Node(const vector_base::VectorBase<DataType, DistanceType, Dimensions>* data) 
+        Node(vector_base::VectorBase<DataType, DistanceType, Dimensions>* data) 
             : data_(data) {}
 
         //Rule of 5:
@@ -39,6 +39,11 @@ class Node {
          */
         ~Node() {
             delete data_;
+            
+            for (Node<DataType, DistanceType, Dimensions, MaxConnections>* n : adjacency_set_) {
+                (*n).adjacency_set_.erase(this);
+            }
+
             adjacency_set_.clear();
         }
 
@@ -50,16 +55,14 @@ class Node {
          * Adds the data and adjacency list of this Node with that of the other
          * Node and deletes the other Node's properties
          */
-        Node(Node<DataType, DistanceType, Dimensions, MaxConnections>
-            && other) noexcept : data_(*other.data_) {
-                delete other.data_;
+        Node(Node&& other) noexcept : data_(*other.data_) {
+            delete other.data_;
 
-                for (vector_base::VectorBase<
-                    DataType, DistanceType, Dimensions, MaxConnections>* 
-                    v : other.adjacency_set_) {
-                        adjacency_set_.insert(v);
-                        delete v;
-                }
+            for (vector_base::VectorBase<DataType, DistanceType, Dimensions>* 
+                v : other.adjacency_set_) {
+                    adjacency_set_.insert(v);
+                    delete v;
+            }
         }
 
         /**
@@ -78,7 +81,7 @@ class Node {
                 delete data_;
 
                 for (vector_base::VectorBase<
-                    DataType, DistanceType, Dimensions, MaxConnections>* 
+                    DataType, DistanceType, Dimensions>* 
                     v : adjacency_set_) {
                         delete v;
                 }
@@ -87,7 +90,7 @@ class Node {
                 delete other.data_;
 
                 for (vector_base::VectorBase<
-                    DataType, DistanceType, Dimensions, MaxConnections>* 
+                    DataType, DistanceType, Dimensions>* 
                     v : other.adjacency_set_) {
                         adjacency_set_.insert(v);
                         delete v;
@@ -101,8 +104,7 @@ class Node {
          * Data Getter
          * Returns the vector base that the Node holds
          */
-        const vector_base::VectorBase<
-            DataType, DistanceType, Dimensions, MaxConnections>& 
+        const vector_base::VectorBase<DataType, DistanceType, Dimensions>& 
             GetData() const {
                 return *data_;
         }
@@ -111,11 +113,11 @@ class Node {
          * Data Setter:
          * Sets the data to what is given in the function
          */
-        void GetData(
-            const VectorBase<DataType, DistanceType, Dimensions, MaxConnections>& 
+        void SetData(
+            const vector_base::VectorBase<DataType, DistanceType, Dimensions>* 
             other) {
                 delete data_;
-                data_ = &other;
+                data_ = *other;
         }
 
         /**
@@ -123,7 +125,7 @@ class Node {
          * Returns a reference to the Node's adjacency set
          */
         const std::set<vector_base::
-            VectorBase<DataType, DistanceType, Dimensions, MaxConnections>*>& 
+            VectorBase<DataType, DistanceType, Dimensions>*>& 
             GetAdjacencySet() const {
                 return adjacency_set_;
         }
