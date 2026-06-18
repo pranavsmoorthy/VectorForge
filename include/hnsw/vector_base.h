@@ -138,6 +138,15 @@ class VectorBase {
             return VectorBase<DataType, DistanceType, Dimensions>(result_coords, data_);
         }
 
+        /**
+         * Less than (<) Operator Overload
+         * Used for set organization, compares the length of the two vectors
+         */
+        bool operator<(
+            const VectorBase<DataType, DistanceType, Dimensions>& other) const {
+                return Length() < other.Length();
+        }
+
         //Array Overrides
         /**
          * Array Operator Overload:

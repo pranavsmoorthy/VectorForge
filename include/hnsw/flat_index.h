@@ -1,5 +1,5 @@
-#ifndef HNSW_EXCEPTIONS_FLAT_INDEX_H_
-#define HNSW_EXCEPTIONS_FLAT_INDEX_H_
+#ifndef HNSW_INCLUDE_FLAT_INDEX_H_
+#define HNSW_INCLUDE_FLAT_INDEX_H_
 
 #include "vector_base.h"
 
@@ -10,10 +10,6 @@
 
 namespace hnsw {
 namespace flat_index {
-
-namespace exceptions {
-
-}
 
 /**
  * This is meant for testing. The class will be representing a linear search
