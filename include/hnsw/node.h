@@ -3,7 +3,7 @@
 
 #include "vector_base.h"
 
-#include <set>
+#include <unordered_set>
 #include <algorithm>
 #include <stdexcept>
 
@@ -41,7 +41,7 @@ class Node {
             delete data_;
             
             for (Node* n : adjacency_set_) {
-                (*n).adjacency_set_.erase(this);
+                (n -> adjacency_set_).erase(this);
             }
 
             adjacency_set_.clear();
@@ -119,8 +119,9 @@ class Node {
          * Adjacency List Getter:
          * Returns a reference to the Node's adjacency set
          */
-        const std::set<Node*>& 
-            GetAdjacencySet() const {return adjacency_set_;
+        const std::unordered_set<Node*>& 
+            GetAdjacencySet() const {
+                return adjacency_set_;
         }
 
         //Adding and Removing Connections
@@ -160,7 +161,7 @@ class Node {
          * Adjacency List:
          * The Node's connection in the graph
          */
-        std::set<Node*> adjacency_set_;
+        std::unordered_set<Node*> adjacency_set_;
 };
 
 

@@ -142,15 +142,6 @@ class VectorBase {
                 result_coords, data_);
         }
 
-        /**
-         * Less than (<) Operator Overload
-         * Used for set organization, compares the length of the two vectors
-         */
-        bool operator<(
-            const VectorBase& other) const {
-                return Length() < other.Length();
-        }
-
         //Array Overrides
         /**
          * Array Operator Overload:
