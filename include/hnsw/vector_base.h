@@ -187,10 +187,6 @@ class VectorBase {
          * Pythagorean theorem
          */
         double EuclideanDistanceTo(const VectorBase& other) const {
-            if (Dimensions  != other.GetDimensions()) {
-                exceptions::ThrowIndexOutOfRangeException();
-            }
-
             double squared_distance = 0.0;
 
             for (std::size_t i = 0; i < Dimensions ; i++) {
@@ -198,6 +194,17 @@ class VectorBase {
             }
 
             return std::sqrt(squared_distance);
+        }
+
+        double EuclideanDistanceTo(const std::array<DistanceType, Dimensions>& 
+            other) const {
+                double squared_distance = 0.0;
+
+                for (std::size_t i = 0; i < Dimensions ; i++) {
+                    squared_distance += (coords_[i] - other[i]) * (coords_[i] - other[i]);
+                }
+
+                return std::sqrt(squared_distance);
         }
 
         double EuclideanDistanceTo(const std::array<DistanceType, Dimensions>& other) {
