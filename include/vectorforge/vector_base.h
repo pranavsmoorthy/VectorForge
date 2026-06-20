@@ -1,12 +1,12 @@
-#ifndef HNSW_INCLUDE_VECTOR_BASE_H_
-#define HNSW_INCLUDE_VECTOR_BASE_H_
+#ifndef VF_INCLUDE_VECTOR_BASE_H_
+#define VF_INCLUDE_VECTOR_BASE_H_
 
 #include <vector>
 #include <type_traits>
 #include <stdexcept>
 #include <cmath>
 
-namespace hnsw {
+namespace vectorforge {
 namespace vector_base {
 
 namespace exceptions {

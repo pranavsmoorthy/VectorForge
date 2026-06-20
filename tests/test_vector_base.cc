@@ -1,11 +1,11 @@
 #include "catch.h"
-#include "../include/hnsw/vector_base.h"
+#include "../include/vectorforge/vector_base.h"
 
 #include <vector>
 #include <array>
 #include <stdexcept>
 
-using namespace hnsw;
+using namespace vectorforge;
 
 TEST_CASE("VectorBase: Initialization and Accessors", "[vector_base]") {
     // Test 1: Default Constructor

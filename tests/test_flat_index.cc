@@ -1,15 +1,15 @@
 #include "catch.h"
 
-#include "../include/hnsw/flat_index.h"
-#include "../include/hnsw/vector_base.h"
+#include "../include/vectorforge/flat_index.h"
+#include "../include/vectorforge/vector_base.h"
 
 #include <string>
 #include <array>
 #include <vector>
 
-using namespace hnsw;
-using namespace hnsw::flat_index;
-using namespace hnsw::vector_base;
+using namespace vectorforge;
+using namespace vectorforge::flat_index;
+using namespace vectorforge::vector_base;
 
 TEST_CASE("FlatIndex: Initialization and Basic Addition", "[flat_index]") {
     // We will use std::string as our DataType (Payload) and double for DistanceType

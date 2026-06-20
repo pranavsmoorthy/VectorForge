@@ -1,5 +1,5 @@
-#ifndef HNSW_INCLUDE_FLAT_INDEX_H_
-#define HNSW_INCLUDE_FLAT_INDEX_H_
+#ifndef VF_INCLUDE_FLAT_INDEX_H_
+#define VF_INCLUDE_FLAT_INDEX_H_
 
 #include "vector_base.h"
 
@@ -8,12 +8,12 @@
 #include <algorithm>
 #include <queue>
 
-namespace hnsw {
+namespace vectorforge {
 namespace flat_index {
 
 /**
  * This is meant for testing. The class will be representing a linear search
- * and will be used to compare against the final HNSW graph.
+ * and will be used to compare against the final VF graph.
  */
 template <typename DataType, typename DistanceType, std::size_t Dimensions>
 class FlatIndex {

@@ -1,5 +1,5 @@
-#ifndef HNSW_INCLUDE_NODE_H_
-#define HNSW_INCLUDE_NODE_H_
+#ifndef VF_INCLUDE_NODE_H_
+#define VF_INCLUDE_NODE_H_
 
 #include "vector_base.h"
 
@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-namespace hnsw {
+namespace vectorforge {
 namespace node {
 
 namespace exceptions {

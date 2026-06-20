@@ -3,13 +3,13 @@
 #include <string>
 #include <stdexcept>
 
-#include "../include/hnsw/node.h"
-#include "../include/hnsw/vector_base.h"
+#include "../include/vectorforge/node.h"
+#include "../include/vectorforge/vector_base.h"
 
 // Create a type alias to keep the tests clean and readable
 // Template arguments: <Payload: string, Math: double, 2 Dimensions, Max 3 Connections>
-using TestNode = hnsw::node::Node<std::string, double, 2, 3>;
-using TestVector = hnsw::vector_base::VectorBase<std::string, double, 2>;
+using TestNode = vectorforge::node::Node<std::string, double, 2, 3>;
+using TestVector = vectorforge::vector_base::VectorBase<std::string, double, 2>;
 
 TEST_CASE("Node: Initialization and Memory Ownership", "[node]") {
     // 1. Create a heap-allocated vector
