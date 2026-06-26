@@ -10,15 +10,13 @@ namespace vectorforge {
 namespace vector_base {
 
 namespace exceptions {
+    inline void ThrowIndexOutOfRangeException() {
+        throw std::out_of_range("Index is out of bounds");
+    }
 
-inline void ThrowIndexOutOfRangeException() {
-    throw std::out_of_range("Index is out of bounds");
-}
-
-inline void ThrowZeroLengthException() {
-    throw std::logic_error("One or more vectors' length is 0");
-}
-
+    inline void ThrowZeroLengthException() {
+        throw std::logic_error("One or more vectors' length is 0");
+    }
 }
 
 /**

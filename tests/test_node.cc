@@ -36,7 +36,7 @@ TEST_CASE("Node: Adding and Severing Connections", "[node]") {
     TestNode nodeE(new TestVector({4.0, 4.0}, "Node E"));
 
     SECTION("Bidirectional Connection Logic") {
-        nodeA.AddConnection(nodeB);
+        nodeA.AddConnection(&nodeB);
 
         // Both nodes should now have each other in their adjacency sets
         REQUIRE(nodeA.GetAdjacencySet().size() == 1);
@@ -53,12 +53,12 @@ TEST_CASE("Node: Adding and Severing Connections", "[node]") {
 
     SECTION("Enforcing Max Connections Exception") {
         // Our MaxConnections template parameter is set to 3.
-        nodeA.AddConnection(nodeB);
-        nodeA.AddConnection(nodeC);
-        nodeA.AddConnection(nodeD);
+        nodeA.AddConnection(&nodeB);
+        nodeA.AddConnection(&nodeC);
+        nodeA.AddConnection(&nodeD);
 
         // The 4th connection should throw the logic_error we defined
-        REQUIRE_THROWS_AS(nodeA.AddConnection(nodeE), std::logic_error);
+        REQUIRE_THROWS_AS(nodeA.AddConnection(&nodeE), std::logic_error);
     }
 }
 
@@ -67,7 +67,7 @@ TEST_CASE("Node: Move Semantics and Neighbor Pointer Updates", "[node]") {
     TestNode nodeB(new TestVector({2.0, 2.0}, "Node B"));
     
     // Connect A and B
-    nodeA.AddConnection(nodeB);
+    nodeA.AddConnection(&nodeB);
 
     SECTION("Move Assignment Operator (Tests Selected Code)") {
         TestNode nodeC(new TestVector({3.0, 3.0}, "Node C (To be overwritten)"));

@@ -1,0 +1,228 @@
+#ifndef VF_INCLUDE_CLUSTER_H_
+#define VF_INCLUDE_CLUSTER_H_
+
+#include "node.h"
+#include "vector_base.h"
+
+#include <unordered_set>
+#include <array>
+#include <vector>
+#include <stdexcept>
+#include <queue>
+#include <set>
+#include <algorithm>
+
+namespace vectorforge {
+namespace cluster {
+
+namespace exceptions {
+    inline void ThrowNodeWithCoordExist() {
+        throw std::logic_error(
+            "Node with coordinate already exists");
+    }
+
+    inline void ThrowNodeExistsInGraph() {
+        throw std::logic_error(
+            "Node already exists in a graph, sever all connections to this node to add to a new graph");
+    }
+}
+
+template <typename DataType, typename DistanceType, std::size_t Dimensions,
+    std::size_t MaxConnectionsForNodes>
+class Cluster {
+    using NodeType = node::Node<DataType, DistanceType, Dimensions, MaxConnectionsForNodes>;
+
+    public:
+        /**
+         * Default Constructor:
+         * Initialized head node to null pointer
+         */
+        Cluster() : head_(nullptr) {};
+
+        /**
+         * Destructor:
+         * Deletes all nodes
+         */
+        ~Cluster() {
+            
+        }
+
+        Cluster(const Cluster& other) = delete;
+        Cluster& operator=(const Cluster& other) = delete;
+        Cluster(Cluster&& other) noexcept = delete;
+        Cluster& operator=(Cluster&& other) noexcept;
+
+        /**
+         * Find Nearest One Node:
+         * Greedily finds the nearest node to the queried coordinate
+         */
+        node::Node<DataType, DistanceType, Dimensions, MaxConnectionsForNodes>* FindNearestNode(
+            const std::array<DistanceType, Dimensions>& query_coordinates) {
+                if (head_ == nullptr) {
+                    return nullptr;
+                }
+
+                NodeType* current_node = head_;
+                std::unordered_set<NodeType*> node_set;
+                
+                while (true) {
+                    double current_distance = (current_node -> GetData()).EuclideanDistanceTo(query_coordinates);
+                    NodeType* nearest_in_adjacent = nullptr;
+
+                    for (NodeType* n : current_node -> GetAdjacencySet()) {
+                        double distance_to_query = (n -> GetData()).EuclideanDistanceTo(query_coordinates);
+
+                        if (node_set.count(n) == 0) {
+                            if (distance_to_query < current_distance) {
+                                current_distance = distance_to_query;
+                                nearest_in_adjacent = n;
+                            }
+                        }
+                    }
+
+                    if (nearest_in_adjacent == nullptr) {
+                        return current_node;
+                    } else {
+                        node_set.insert(current_node);
+                        current_node = nearest_in_adjacent;
+                    }
+                }
+
+                return nullptr;
+        }
+
+        /**
+         * Find Nearest K Nodes:
+         * Greedily finds the nearest K nodes to the given coordinates and 
+         * returns a vector of such pointers.
+         */
+        std::vector<node::Node<DataType, DistanceType, Dimensions, MaxConnectionsForNodes>*> FindNearestKNodes(
+            const std::array<DistanceType, Dimensions>& query_coordinates, const size_t k) {
+                std::vector<NodeType*> results;
+
+                if (k == 0 || head_ == nullptr) {
+                    return results;
+                }
+
+                results.reserve(k);
+
+                std::priority_queue<std::pair<double, NodeType*>> nearest_nodes_queue;
+                nearest_nodes_queue.push({(head_ -> GetData()).EuclideanDistanceTo(query_coordinates), head_});
+
+                NodeType* current_node = head_;
+                std::unordered_set<NodeType*> node_set;
+                node_set.insert(head_);
+                
+                while (true) {
+                    double current_distance = (current_node -> GetData()).EuclideanDistanceTo(query_coordinates);
+                    NodeType* nearest_in_adjacent = nullptr;
+
+                    for (NodeType* n : current_node -> GetAdjacencySet()) {
+                        if (node_set.count(n) == 0) {
+                            double distance_to_query = (n -> GetData()).EuclideanDistanceTo(query_coordinates);
+                            nearest_nodes_queue.push({distance_to_query, n});
+
+                            if (nearest_nodes_queue.size() > k) {
+                                nearest_nodes_queue.pop();
+                            }
+
+                            if (distance_to_query < current_distance) {
+                                current_distance = distance_to_query;
+                                nearest_in_adjacent = n;
+                            }
+
+                            node_set.insert(n);
+                        }
+                    }
+
+                    if (nearest_in_adjacent == nullptr) {
+                        break;
+                    } else {
+                        current_node = nearest_in_adjacent;
+                    }
+                }
+
+                while (!nearest_nodes_queue.empty()) {
+                    results.push_back(nearest_nodes_queue.top().second);
+                    nearest_nodes_queue.pop();
+                }
+
+                std::reverse(results.begin(), results.end());
+
+                return results;
+        }
+
+        /**
+         * Adjacency List Getter:
+         * Returns a reference to the Cluster's adjacency set
+         */
+        const std::unordered_set<Cluster*>& 
+            GetAdjacencySet() const {
+                return adjacency_set_;
+        }
+
+        /**
+         * Get Head Node:
+         * Returns the head Node
+         */
+        node::Node<DataType, DistanceType, Dimensions, MaxConnectionsForNodes>* GetHeadNode() {
+            return head_;
+        }
+
+        //Adding and Removing Connections
+        /**
+         * Add Connections: 
+         * Adds this cluster to the other cluster's adjacency set, and vice versa
+         */
+        void AddConnection(Cluster& other) {
+            adjacency_set_.insert(&other);
+            other.adjacency_set_.insert(this);
+
+            //Rest
+        }
+
+        /**
+         * Sever Connections:
+         * Removes this cluster from other cluster's adjacency set, and vice versa
+         */
+        void SeverConnection(Cluster& other) {
+            adjacency_set_.erase(&other);
+            other.adjacency_set_.erase(this);
+        }
+
+        /**
+         * Add Node:
+         * First, the program performs a greedy 
+         */
+        bool AddNode(node::Node<DataType, DistanceType, Dimensions, MaxConnectionsForNodes>* node) {
+            if ((node -> GetAdjacencySet()).size() != 0) {
+                exceptions::ThrowNodeExistsInGraph();
+            }
+
+            if (head_ == nullptr) {
+                head_ = node;
+                return true;
+            }
+
+            return false;
+        }
+
+    private:
+        /**
+         * Start Node:
+         * Serves as the default entry node for the cluster, makes sure that all 
+         * nodes trace back to this node
+         */
+        node::Node<DataType, DistanceType, Dimensions, MaxConnectionsForNodes>* head_;
+
+        /**
+         * Adjacency Set:
+         * 
+         */
+        std::unordered_set<Cluster*> adjacency_set_;
+};
+
+}
+}
+
+#endif
