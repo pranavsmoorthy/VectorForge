@@ -225,21 +225,25 @@ class Cluster {
                         }
                     }
 
-                    n -> SeverConnection(furthest_node);
+                    if ((n -> GetData()).EuclideanDistanceTo((node -> GetData()).GetCoords()) < max_distance) {
+                        n -> SeverConnection(furthest_node);
 
-                    if (!connection_severed) {
-                        connection_severed = true;
-                    }
+                        if (!connection_severed) {
+                            connection_severed = true;
+                        }
 
-                    if (std::find(isolated_nodes.begin(), isolated_nodes.end(), furthest_node) == isolated_nodes.end() && furthest_node != FindNearestNode((furthest_node -> GetData()).GetCoords())) {
-                        isolated_nodes.push_back(furthest_node);
+                        if (std::find(isolated_nodes.begin(), isolated_nodes.end(), furthest_node) == isolated_nodes.end() && furthest_node != FindNearestNode((furthest_node -> GetData()).GetCoords())) {
+                            isolated_nodes.push_back(furthest_node);
+                        }
+
+                        node -> AddConnection(n);
                     }
-                }
-                
-                node -> AddConnection(n);
+                } else {
+                    node -> AddConnection(n);
+                }                
             }
 
-            if (connection_severed && node != FindNearestNode((node -> GetData()).GetCoords())) {
+            if ((node -> GetAdjacencySet()).empty() || (connection_severed && node != FindNearestNode((node -> GetData()).GetCoords()))) {
                 isolated_nodes.push_back(node);
             }
 
