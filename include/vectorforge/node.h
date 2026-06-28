@@ -173,7 +173,7 @@ class Node {
          * Returns distance to another node
          */
         double DistanceToNode(Node* other) {
-            return data_ -> EuclideanDistanceTo(other -> data_ -> coords_);
+            return data_ -> EuclideanDistanceTo(other -> data_ -> GetCoords());
         }
 
         /**

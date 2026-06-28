@@ -56,7 +56,7 @@ class Cluster {
          * Find Nearest One Node:
          * Greedily finds the nearest node to the queried coordinate
          */
-        node::Node<DataType, DistanceType, Dimensions, MaxConnectionsForNodes>* FindNearestNode(
+        NodeType* FindNearestNode(
             const std::array<DistanceType, Dimensions>& query_coordinates) {
                 if (head_ == nullptr) {
                     return nullptr;
@@ -66,11 +66,14 @@ class Cluster {
                 std::unordered_set<NodeType*> node_set;
                 
                 while (true) {
-                    double current_distance = (current_node -> GetData()).EuclideanDistanceTo(query_coordinates);
+                    double current_distance = 
+                        current_node -> DistanceToCoords(query_coordinates);
+                        
                     NodeType* nearest_in_adjacent = nullptr;
 
                     for (NodeType* n : current_node -> GetAdjacencySet()) {
-                        double distance_to_query = (n -> GetData()).EuclideanDistanceTo(query_coordinates);
+                        double distance_to_query = 
+                            n -> DistanceToCoords(query_coordinates);
 
                         if (node_set.count(n) == 0) {
                             if (distance_to_query < current_distance) {
@@ -96,8 +99,9 @@ class Cluster {
          * Greedily finds the nearest K nodes to the given coordinates and 
          * returns a vector of such pointers.
          */
-        std::vector<node::Node<DataType, DistanceType, Dimensions, MaxConnectionsForNodes>*> FindNearestKNodes(
-            const std::array<DistanceType, Dimensions>& query_coordinates, const size_t k) {
+        std::vector<NodeType*> FindNearestKNodes(
+            const std::array<DistanceType, Dimensions>& query_coordinates, 
+            const size_t k) {
                 std::vector<NodeType*> results;
 
                 if (k == 0 || head_ == nullptr) {
@@ -106,24 +110,31 @@ class Cluster {
 
                 results.reserve(k);
 
-                std::priority_queue<std::pair<double, NodeType*>> nearest_nodes_queue;
-                nearest_nodes_queue.push({(head_ -> GetData()).EuclideanDistanceTo(query_coordinates), head_});
+                std::priority_queue<std::pair<double, NodeType*>> node_queue;
+                node_queue.push({
+                    head_ -> DistanceToCoords(query_coordinates), 
+                    head_
+                });
 
                 NodeType* current_node = head_;
                 std::unordered_set<NodeType*> node_set;
                 node_set.insert(head_);
                 
                 while (true) {
-                    double current_distance = (current_node -> GetData()).EuclideanDistanceTo(query_coordinates);
+                    double current_distance = 
+                        current_node -> DistanceToCoords(query_coordinates);
+
                     NodeType* nearest_in_adjacent = nullptr;
 
                     for (NodeType* n : current_node -> GetAdjacencySet()) {
                         if (node_set.count(n) == 0) {
-                            double distance_to_query = (n -> GetData()).EuclideanDistanceTo(query_coordinates);
-                            nearest_nodes_queue.push({distance_to_query, n});
+                            double distance_to_query = 
+                                n -> DistanceToCoords(query_coordinates);
 
-                            if (nearest_nodes_queue.size() > k) {
-                                nearest_nodes_queue.pop();
+                            node_queue.push({distance_to_query, n});
+
+                            if (node_queue.size() > k) {
+                                node_queue.pop();
                             }
 
                             if (distance_to_query < current_distance) {
@@ -142,9 +153,9 @@ class Cluster {
                     }
                 }
 
-                while (!nearest_nodes_queue.empty()) {
-                    results.push_back(nearest_nodes_queue.top().second);
-                    nearest_nodes_queue.pop();
+                while (!node_queue.empty()) {
+                    results.push_back(node_queue.top().second);
+                    node_queue.pop();
                 }
 
                 std::reverse(results.begin(), results.end());
@@ -159,20 +170,21 @@ class Cluster {
         const std::unordered_set<Cluster*>& 
             GetAdjacencySet() const {
                 return adjacency_set_;
-        }
+            }
 
         /**
          * Get Head Node:
          * Returns the head Node
          */
-        node::Node<DataType, DistanceType, Dimensions, MaxConnectionsForNodes>* GetHeadNode() {
+        NodeType* GetHeadNode() {
             return head_;
         }
 
         //Adding and Removing Connections
         /**
          * Add Connections: 
-         * Adds this cluster to the other cluster's adjacency set, and vice versa
+         * Adds this cluster to the other cluster's adjacency set, and vice 
+         * versa
          */
         void AddConnection(Cluster& other) {
             adjacency_set_.insert(&other);
@@ -181,7 +193,8 @@ class Cluster {
 
         /**
          * Sever Connections:
-         * Removes this cluster from other cluster's adjacency set, and vice versa
+         * Removes this cluster from other cluster's adjacency set, and vice 
+         * versa
          */
         void SeverConnection(Cluster& other) {
             adjacency_set_.erase(&other);
@@ -205,25 +218,31 @@ class Cluster {
                 return isolated_nodes;
             }
 
-            NodeType* closest_existing = FindNearestNode(node->GetData().GetCoords());
+            NodeType* closest_existing = FindNearestNode(node -> GetCoords());
+
             if (closest_existing != nullptr) {
-                double distance = closest_existing->GetData().EuclideanDistanceTo(node->GetData().GetCoords());
+                double distance = closest_existing -> DistanceToNode(node);
+
                 if (distance < 1e-9) { 
                     exceptions::ThrowNodeWithCoordExist();
                 }
             }
 
-            std::vector<NodeType*> nearest_k_nodes = FindNearestKNodes((node -> GetData()).GetCoords(), MaxConnectionsForNodes);
+            std::vector<NodeType*> nearest_k_nodes = FindNearestKNodes(
+                node -> GetCoords(), MaxConnectionsForNodes);
+
             bool connection_severed = false;
 
             for (NodeType* n : nearest_k_nodes) {
                 if (n -> AtConnectionLimit()) {
-                    std::unordered_set<NodeType*> node_adjacency_set = n -> GetAdjacencySet();
+                    std::unordered_set<NodeType*> node_adjacency_set = 
+                        n -> GetAdjacencySet();
+
                     NodeType* furthest_node = nullptr;
                     double max_distance = 0.0;
 
                     for (NodeType* a : node_adjacency_set) {
-                        double current_distance = (n -> GetData()).EuclideanDistanceTo((a -> GetData()).GetCoords());
+                        double current_distance = n -> DistanceToNode(a);
 
                         if (current_distance > max_distance) {
                             max_distance = current_distance;
@@ -231,15 +250,16 @@ class Cluster {
                         }
                     }
 
-                    if ((n -> GetData()).EuclideanDistanceTo((node -> GetData()).GetCoords()) < max_distance) {
+                    if (n -> DistanceToNode(node) < max_distance) {
                         n -> SeverConnection(furthest_node);
 
                         if (!connection_severed) {
                             connection_severed = true;
                         }
 
-                        if (std::find(isolated_nodes.begin(), isolated_nodes.end(), furthest_node) == isolated_nodes.end() && furthest_node != FindNearestNode((furthest_node -> GetData()).GetCoords())) {
-                            isolated_nodes.push_back(furthest_node);
+                        if (std::find(isolated_nodes.begin(), isolated_nodes.end(), furthest_node) == isolated_nodes.end() 
+                            && furthest_node != FindNearestNode(furthest_node -> GetCoords())) {
+                                isolated_nodes.push_back(furthest_node);
                         }
 
                         node -> AddConnection(n);
@@ -249,8 +269,9 @@ class Cluster {
                 }                
             }
 
-            if ((node -> GetAdjacencySet()).empty() || (connection_severed && node != FindNearestNode((node -> GetData()).GetCoords()))) {
-                isolated_nodes.push_back(node);
+            if ((node -> GetAdjacencySet()).empty() 
+                || (connection_severed && node != FindNearestNode(node -> GetCoords()))) {
+                    isolated_nodes.push_back(node);
             }
 
             return isolated_nodes;
@@ -266,7 +287,7 @@ class Cluster {
 
         /**
          * Adjacency Set:
-         * 
+         * A set of the clusters this cluster hasa connection to
          */
         std::unordered_set<Cluster*> adjacency_set_;
 };
