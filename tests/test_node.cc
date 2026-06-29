@@ -18,14 +18,8 @@ TEST_CASE("Node: Initialization and Memory Ownership", "[node]") {
     // 2. Pass ownership to the Node
     TestNode nodeA(vec);
 
-    REQUIRE(nodeA.GetData().GetData() == "Payload A");
+    REQUIRE(nodeA.GetData() == "Payload A");
     REQUIRE(nodeA.GetAdjacencySet().empty());
-
-    // 3. Test SetData (which should safely delete the old payload)
-    TestVector* new_vec = new TestVector({3.0, 4.0}, "Payload B");
-    nodeA.SetData(new_vec);
-    
-    REQUIRE(nodeA.GetData().GetData() == "Payload B");
 }
 
 TEST_CASE("Node: Adding and Severing Connections", "[node]") {
@@ -77,7 +71,7 @@ TEST_CASE("Node: Move Semantics and Neighbor Pointer Updates", "[node]") {
         nodeC = std::move(nodeA);
 
         // 1. Verify Node C stole the payload successfully
-        REQUIRE(nodeC.GetData().GetData() == "Node A");
+        REQUIRE(nodeC.GetData() == "Node A");
         
         // 2. Verify Node B's pointers were updated successfully
         REQUIRE(nodeB.GetAdjacencySet().count(&nodeA) == 0); // B no longer points to A
@@ -95,5 +89,51 @@ TEST_CASE("Node: Move Semantics and Neighbor Pointer Updates", "[node]") {
         REQUIRE(nodeB.GetAdjacencySet().count(&nodeA) == 0);
         REQUIRE(nodeB.GetAdjacencySet().count(&nodeD) == 1);
         REQUIRE(nodeD.GetAdjacencySet().count(&nodeB) == 1);
+    }
+}
+
+TEST_CASE("Node: Dead Node State Interactions", "[node]") {
+    TestNode* nodeA = new TestNode(new TestVector({0.0, 0.0}, "Node A"));
+    TestNode* nodeB = new TestNode(new TestVector({2.0, 2.0}, "Node B"));
+    TestNode* nodeC = new TestNode(new TestVector({2.1, 2.1}, "Node C"));
+
+    SECTION("Marking a node dead triggers proper state exceptions") {
+        // Connect A and B. This gives B a connection so that calling MarkDead() 
+        // does NOT instantly trigger `delete this;`. It stays in memory as a dead bridge!
+        nodeA->AddConnection(nodeB);
+        
+        nodeB->MarkDead();
+        
+        REQUIRE(nodeB->IsDead() == true);
+        REQUIRE(nodeA->IsDead() == false);
+
+        // 1. Reading data from a dead node throws ThrowCannotGetFromDeadNode
+        REQUIRE_THROWS_AS(nodeB->GetData(), std::logic_error);
+
+        // 2. Modifying data in a dead node throws ThrowCannotEditDeadNode
+        REQUIRE_THROWS_AS(nodeB->SetData("Hacked Payload"), std::logic_error);
+
+        // 3. Connecting to a dead node throws ThrowCannotConnectToDeadNode
+        REQUIRE_THROWS_AS(nodeC->AddConnection(nodeB), std::logic_error);
+        REQUIRE_THROWS_AS(nodeB->AddConnection(nodeC), std::logic_error);
+
+        // CLEANUP: Severing the connection drops both counts to 0.
+        // Your SeverConnection function will now auto-delete both A and B!
+        nodeA->SeverConnection(nodeB); 
+        delete nodeC;
+    }
+
+    SECTION("Marking a 0-connection node dead instantly deletes it") {
+        TestNode* nodeLonely = new TestNode(new TestVector({10.0, 10.0}, "Lonely Node"));
+        
+        // Because nodeLonely has 0 connections, your MarkDead() logic triggers `delete this;`.
+        // We can't safely REQUIRE anything about the pointer after this line without risking 
+        // undefined behavior, but running this test proves it completes without crashing!
+        nodeLonely->MarkDead(); 
+        
+        // Cleanup the unused testing nodes
+        delete nodeA;
+        delete nodeB;
+        delete nodeC;
     }
 }

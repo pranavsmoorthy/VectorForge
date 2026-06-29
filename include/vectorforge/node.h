@@ -16,6 +16,18 @@ namespace exceptions {
     inline void ThrowMaxConnectionsReached() {
         throw std::logic_error("Max connections reached for one or more node");
     }
+
+    inline void ThrowCannotConnectToDeadNode() {
+        throw std::logic_error("Cannot create a connection to a dead node");
+    }
+
+    inline void ThrowCannotGetFromDeadNode() {
+        throw std::logic_error("Cannot get data from a dead node");
+    }
+
+    inline void ThrowCannotEditDeadNode() {
+        throw std::logic_error("Cannot edit dead node");
+    }
 }
 
 /**
@@ -32,7 +44,7 @@ class Node {
          * Takes a VectorBase as the data point it holds
          */
         Node(vector_base::VectorBase<DataType, DistanceType, Dimensions>* data) 
-            : data_(data) {}
+            : data_(data), dead_(false) {}
 
         //Rule of 5:
         /**
@@ -59,6 +71,7 @@ class Node {
          */
         Node(Node&& other) noexcept : 
             data_(other.data_), 
+            dead_(false),
             adjacency_set_(std::move(other.adjacency_set_)) {
                 other.data_ = nullptr;
 
@@ -78,6 +91,8 @@ class Node {
             if (this == &other) {
                 return *this;
             }
+
+            dead_ = false;
 
             delete data_;
             for (Node* n : adjacency_set_) {
@@ -101,20 +116,24 @@ class Node {
          * Data Getter
          * Returns the vector base that the Node holds
          */
-        const vector_base::VectorBase<DataType, DistanceType, Dimensions>& 
-            GetData() const {
-                return *data_;
+        const DataType& GetData() const {
+            if (dead_) {
+                exceptions::ThrowCannotGetFromDeadNode();
+            }
+
+            return data_ -> GetData();
         }
 
         /**
          * Data Setter:
          * Sets the data to what is given in the function
          */
-        void SetData(
-            vector_base::VectorBase<DataType, DistanceType, Dimensions>* 
-            other) {
-                delete data_;
-                data_ = other;
+        void SetData(const DataType& other) {
+            if (dead_) {
+                exceptions::ThrowCannotEditDeadNode();
+            }
+
+            data_ -> SetData(other);
         }
 
         /**
@@ -134,12 +153,43 @@ class Node {
             return data_ -> GetCoords();
         }
 
+        /**
+         * Is Dead:
+         * Returns if node is dead or not
+         */
+        bool IsDead() {
+            return dead_;
+        }
+
+        /**
+         * Mark Dead:
+         * Effectively marks the node as dead and removes the data, but does
+         * not actually delete it (unless it has no adjacent nodes) in order to 
+         * maintain connections
+         */
+        void MarkDead() {
+            if (!dead_) {
+                dead_ = true;
+                
+                delete data_;
+                data_ = nullptr;
+
+                if (adjacency_set_.empty()) {
+                    delete this;
+                }
+            }
+        }
+
         //Adding and Removing Connections
         /**
          * Add Connections: 
          * Adds this node to the other node's adjacency set, and vice versa
          */
         void AddConnection(Node* other) {
+            if (dead_ || other -> dead_) {
+                exceptions::ThrowCannotConnectToDeadNode();
+            }
+
             if (
                 adjacency_set_.size() == MaxConnections || 
                 other -> adjacency_set_.size() == MaxConnections
@@ -158,6 +208,14 @@ class Node {
         void SeverConnection(Node* other) {
             adjacency_set_.erase(other);
             other -> adjacency_set_.erase(this);
+
+            if ((other -> adjacency_set_).empty() || other -> dead_) {
+                delete other;
+            }
+
+            if (adjacency_set_.empty() || dead_) {
+                delete this;
+            }
         }
 
         /**
@@ -198,6 +256,12 @@ class Node {
          * The Node's connection in the graph
          */
         std::unordered_set<Node*> adjacency_set_;
+
+        /**
+         * Dead: 
+         * Holds whether node is dead or alive
+         */
+        bool dead_;
 };
 
 

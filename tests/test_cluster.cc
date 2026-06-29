@@ -29,7 +29,7 @@ TEST_CASE("Cluster: Initialization and Head Node", "[cluster]") {
     cluster.AddNode(head_node);
 
     REQUIRE(cluster.GetHeadNode() != nullptr);
-    REQUIRE(cluster.GetHeadNode()->GetData().GetData() == "Head Payload");
+    REQUIRE(cluster.GetHeadNode()->GetData() == "Head Payload");
 }
 
 TEST_CASE("Cluster: AddNode Exception Handling", "[cluster]") {
@@ -95,12 +95,12 @@ TEST_CASE("Cluster: Empty / Single Node Search Behaviors", "[cluster]") {
         // Single Nearest Node
         TestNode* result = cluster.FindNearestNode(query);
         REQUIRE(result != nullptr);
-        REQUIRE(result->GetData().GetData() == "Origin");
+        REQUIRE(result->GetData() == "Origin");
 
         // K-Nearest Nodes (asking for 3, but only 1 exists)
         auto k_results = cluster.FindNearestKNodes(query, 3);
         REQUIRE(k_results.size() == 1);
-        REQUIRE(k_results[0]->GetData().GetData() == "Origin");
+        REQUIRE(k_results[0]->GetData() == "Origin");
     }
 }
 
@@ -129,7 +129,7 @@ TEST_CASE("Cluster: Multi-Node Search Routing", "[cluster]") {
         
         // The search should traverse A -> B -> C and stop at C as the local minimum
         REQUIRE(result != nullptr);
-        REQUIRE(result->GetData().GetData() == "Node C");
+        REQUIRE(result->GetData() == "Node C");
     }
 
     SECTION("Greedy Search for K-Nearest Nodes") {
@@ -141,9 +141,9 @@ TEST_CASE("Cluster: Multi-Node Search Routing", "[cluster]") {
         auto k_results = cluster.FindNearestKNodes(query, 3);
         
         REQUIRE(k_results.size() == 3);
-        REQUIRE(k_results[0]->GetData().GetData() == "Node B"); // Closest
-        REQUIRE(k_results[1]->GetData().GetData() == "Node C"); // 2nd Closest
-        REQUIRE(k_results[2]->GetData().GetData() == "Node A"); // 3rd Closest
+        REQUIRE(k_results[0]->GetData() == "Node B"); // Closest
+        REQUIRE(k_results[1]->GetData() == "Node C"); // 2nd Closest
+        REQUIRE(k_results[2]->GetData() == "Node A"); // 3rd Closest
     }
 }
 
