@@ -313,14 +313,16 @@ class Cluster {
             }
         }
 
-        void DeleteNode(const std::array<DistanceType, Dimensions>& query_coordinates) {
-            NodeType* existing_node = FindNearestNode(query_coordinates);
+        void DeleteNode(
+            const std::array<DistanceType, Dimensions>& query_coordinates) {
+                NodeType* existing_node = FindNearestNode(query_coordinates);
 
-            if (existing_node -> DistanceToCoords(query_coordinates) <= 1e-9) {
-                existing_node -> MarkDead();
-            } else {
-                exceptions::ThrowCouldNotFindNode();
-            }
+                if (existing_node -> DistanceToCoords(
+                    query_coordinates) <= 1e-9) {
+                        existing_node -> MarkDead();
+                } else {
+                    exceptions::ThrowCouldNotFindNode();
+                }
         }
 
     private:
