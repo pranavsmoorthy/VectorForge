@@ -26,7 +26,9 @@ TEST_CASE("Cluster: Initialization and Head Node", "[cluster]") {
 
     // 2. Add the first node (should become the head)
     TestNode* head_node = new TestNode(new TestVector({0.0, 0.0}, "Head Payload"));
-    cluster.AddNode(head_node);
+    
+    // AddNode should return an empty vector (no islands created)
+    REQUIRE(cluster.AddNode(head_node).empty());
 
     REQUIRE(cluster.GetHeadNode() != nullptr);
     REQUIRE(cluster.GetHeadNode()->GetData() == "Head Payload");
@@ -57,23 +59,16 @@ TEST_CASE("Cluster: Meta-Graph Connections", "[cluster]") {
     TestCluster clusterE;
 
     SECTION("Bidirectional Cluster Linking") {
-        clusterA.AddConnection(clusterB);
+        clusterA.AddConnection(&clusterB);
 
         // Both clusters should now be linked in the Meta-Graph
         REQUIRE(clusterA.GetAdjacencySet().size() == 1);
         REQUIRE(clusterB.GetAdjacencySet().size() == 1);
 
         // Sever the link
-        clusterA.SeverConnection(clusterB);
+        clusterA.SeverConnection(&clusterB);
         REQUIRE(clusterA.GetAdjacencySet().empty());
         REQUIRE(clusterB.GetAdjacencySet().empty());
-    }
-
-    SECTION("Enforcing Max Connections on Clusters") {
-        // Our test template sets MaxConnections to 3
-        clusterA.AddConnection(clusterB);
-        clusterA.AddConnection(clusterC);
-        clusterA.AddConnection(clusterD);
     }
 }
 
@@ -113,9 +108,10 @@ TEST_CASE("Cluster: Multi-Node Search Routing", "[cluster]") {
     TestNode* nodeC = new TestNode(new TestVector({2.0, 2.0}, "Node C"));
     TestNode* nodeD = new TestNode(new TestVector({3.0, 3.0}, "Node D"));
 
+
     // Set Node A as the entry point for the cluster
     cluster.AddNode(nodeA);
-
+    
     // Manually link the nodes to form a traversable graph: A <-> B <-> C <-> D
     nodeA->AddConnection(nodeB);
     nodeB->AddConnection(nodeC);
@@ -136,14 +132,139 @@ TEST_CASE("Cluster: Multi-Node Search Routing", "[cluster]") {
         // Query coordinate closer to Node B (1.0, 1.0)
         std::array<double, 2> query = {1.1, 1.1};
         
-        // Ask for the 3 closest nodes. 
-        // Expected order (best to worst): B, C, A
         auto k_results = cluster.FindNearestKNodes(query, 3);
         
         REQUIRE(k_results.size() == 3);
         REQUIRE(k_results[0]->GetData() == "Node B"); // Closest
         REQUIRE(k_results[1]->GetData() == "Node C"); // 2nd Closest
         REQUIRE(k_results[2]->GetData() == "Node A"); // 3rd Closest
+    }
+}
+
+TEST_CASE("Cluster: Dynamic AddNode Connection Logic", "[cluster]") {
+    TestCluster cluster;
+
+    TestNode* nodeA = new TestNode(new TestVector({0.0, 0.0}, "Node A (Head)"));
+    TestNode* nodeB = new TestNode(new TestVector({2.0, 2.0}, "Node B"));
+    TestNode* nodeC = new TestNode(new TestVector({2.1, 2.1}, "Node C"));
+
+    SECTION("Connecting to an empty cluster") {
+        // Adding head node should not return any isolated nodes
+        REQUIRE(cluster.AddNode(nodeA).empty());
+        REQUIRE(cluster.GetHeadNode() == nodeA);
+    }
+
+    SECTION("Connecting to a populated cluster (Multiple K-NN Links)") {
+        cluster.AddNode(nodeA);
+        
+        REQUIRE(cluster.AddNode(nodeB).empty());
+        REQUIRE(nodeB->GetAdjacencySet().count(nodeA) == 1);
+
+        // Node C should connect to BOTH A and B without causing isolation
+        REQUIRE(cluster.AddNode(nodeC).empty());
+        
+        REQUIRE(nodeC->GetAdjacencySet().count(nodeB) == 1); // Closest
+        REQUIRE(nodeC->GetAdjacencySet().count(nodeA) == 1); // Second closest
+        
+        REQUIRE(nodeB->GetAdjacencySet().count(nodeC) == 1);
+        REQUIRE(nodeA->GetAdjacencySet().count(nodeC) == 1);
+    }
+
+    SECTION("Connecting a node with identical coordinates throws an exception") {
+        cluster.AddNode(nodeA); // Is at (0.0, 0.0)
+
+        // Attempting to add a node with the exact same geometric coordinates
+        TestNode* duplicateNode = new TestNode(new TestVector({0.0, 0.0}, "Duplicate Payload"));
+        
+        // This should trigger the exceptions::ThrowNodeWithCoordExist() error!
+        REQUIRE_THROWS_AS(cluster.AddNode(duplicateNode), std::logic_error);
+
+        // Clean up memory since it was safely rejected from the graph
+        delete duplicateNode; 
+    }
+
+    SECTION("Connecting to a full cluster triggers Routability Test (The Island Effect)") {
+        // Setup a fully connected clique of 4 nodes (MaxConnections is 3)
+        cluster.AddNode(nodeA); // (0.0, 0.0)
+        cluster.AddNode(nodeB); // (2.0, 2.0)
+        cluster.AddNode(nodeC); // (2.1, 2.1)
+
+        TestNode* nodeD = new TestNode(new TestVector({10.0, 10.0}, "Node D (Outlier)"));
+        REQUIRE(cluster.AddNode(nodeD).empty());
+
+        // At this point, A, B, C, and D all have exactly 3 connections. They are completely full!
+        REQUIRE(nodeA->GetAdjacencySet().size() == 3);
+        REQUIRE(nodeD->GetAdjacencySet().size() == 3);
+
+        // Insert Node E right into the middle of the A-B-C dense cluster
+        TestNode* nodeE = new TestNode(new TestVector({1.0, 1.0}, "Node E"));
+        
+        // E will connect to its 3 nearest neighbors (A, B, C).
+        // Since A, B, C are full, they must bidirectionally sever their FURTHEST connection (Node D).
+        // Because D is completely severed, the Routability Test will fail to find it,
+        // and AddNode MUST return D in the isolated_nodes vector!
+        std::vector<TestNode*> isolated_nodes = cluster.AddNode(nodeE);
+
+        // Verify the Island was caught!
+        REQUIRE(isolated_nodes.size() == 1);
+        REQUIRE(isolated_nodes[0] == nodeD);
+        
+        // Verify D is truly isolated
+        REQUIRE(nodeD->GetAdjacencySet().empty());
+        
+        // Verify E successfully integrated
+        REQUIRE(nodeE->GetAdjacencySet().size() == 3);
+    }
+
+    SECTION("Connecting a worse node to a full cluster is rejected (Distance Heuristic)") {
+        // Setup a fully connected clique of 4 nodes
+        cluster.AddNode(nodeA); // (0.0, 0.0)
+        cluster.AddNode(nodeB); // (2.0, 2.0)
+        cluster.AddNode(nodeC); // (2.1, 2.1)
+        
+        // Add a 4th tight node so everyone hits MaxConnections (3)
+        TestNode* tightNode = new TestNode(new TestVector({1.0, 1.0}, "Tight Node"));
+        cluster.AddNode(tightNode);
+
+        // Now insert a massive outlier.
+        TestNode* outlierNode = new TestNode(new TestVector({100.0, 100.0}, "Far Outlier"));
+        
+        // The nearest_k_nodes will return A, B, C (or tightNode). 
+        // BUT because outlierNode is further away than their existing connections,
+        // your new `if (distance < max_distance)` check will fail.
+        // They will refuse to sever their good connections!
+        cluster.AddNode(outlierNode);
+
+        // Verify the outlier was completely rejected by the full nodes
+        REQUIRE(outlierNode->GetAdjacencySet().empty());
+        
+        // Verify the tight cluster remained perfectly intact and didn't sever anyone
+        REQUIRE(nodeA->GetAdjacencySet().size() == 3);
+        REQUIRE(tightNode->GetAdjacencySet().size() == 3);
+    }
+
+    SECTION("Connecting a node with identical coordinates to a dead node resurrects it") {
+        cluster.AddNode(nodeA); // (0.0, 0.0)
+        cluster.AddNode(nodeB); // (2.0, 2.0)
+        
+        // Mark nodeB as dead. Because it is connected to nodeA, its adjacency 
+        // set is NOT empty, so it safely remains in the cluster's memory as a bridge.
+        nodeB->MarkDead();
+        REQUIRE(nodeB->IsDead() == true);
+        
+        // Attempt to insert a new node at the exact same geometric coordinates as the dead nodeB
+        TestNode* resurrectingNode = new TestNode(new TestVector({2.0, 2.0}, "Resurrected Payload"));
+        
+        // AddNode should catch the dead node at this coordinate, resurrect it, and return no isolated nodes
+        REQUIRE(cluster.AddNode(resurrectingNode).empty());
+        
+        // Verify nodeB was brought back to life and stole the new payload
+        REQUIRE(nodeB->IsDead() == false);
+        REQUIRE(nodeB->GetData() == "Resurrected Payload");
+        
+        // Clean up the resurrectingNode pointer! Because your Cluster simply took its payload
+        // and resurrected the old node, the new Node object itself was rejected and must be deleted.
+        delete resurrectingNode;
     }
 }
 

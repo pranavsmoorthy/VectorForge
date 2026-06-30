@@ -57,7 +57,8 @@ class Cluster {
          * Greedily finds the nearest node to the queried coordinate
          */
         NodeType* FindNearestNode(
-            const std::array<DistanceType, Dimensions>& query_coordinates) {
+            const std::array<DistanceType, Dimensions>& query_coordinates,
+            bool include_dead_nodes = false) {
                 if (head_ == nullptr) {
                     return nullptr;
                 }
@@ -65,16 +66,16 @@ class Cluster {
                 NodeType* current_node = head_;
                 std::unordered_set<NodeType*> node_set;
                 
-                NodeType* best_alive_node = nullptr;
-                double best_alive_distance = 0.0; 
+                NodeType* best_node = nullptr;
+                double best_distance = 0.0; 
                 
                 while (true) {
                     double current_distance = current_node->DistanceToCoords(query_coordinates);
                     
-                    if (!current_node->IsDead()) {
-                        if (best_alive_node == nullptr || current_distance < best_alive_distance) {
-                            best_alive_distance = current_distance;
-                            best_alive_node = current_node;
+                    if (include_dead_nodes || !current_node->IsDead()) {
+                        if (best_node == nullptr || current_distance < best_distance) {
+                            best_distance = current_distance;
+                            best_node = current_node;
                         }
                     }
 
@@ -92,7 +93,7 @@ class Cluster {
                     }
 
                     if (nearest_in_adjacent == nullptr) {
-                        return best_alive_node;
+                        return best_node;
                     } else {
                         node_set.insert(current_node);
                         current_node = nearest_in_adjacent;
@@ -109,7 +110,8 @@ class Cluster {
          */
         std::vector<NodeType*> FindNearestKNodes(
             const std::array<DistanceType, Dimensions>& query_coordinates, 
-            const size_t k) {
+            const size_t k,
+            bool include_dead_nodes = false) {
                 std::vector<NodeType*> results;
 
                 if (k == 0 || head_ == nullptr) {
@@ -139,7 +141,7 @@ class Cluster {
                             double distance_to_query = 
                                 n -> DistanceToCoords(query_coordinates);
 
-                            if (!(n -> IsDead())) {
+                            if (include_dead_nodes || !(n -> IsDead())) {
                                 node_queue.push({distance_to_query, n});
 
                                 if (node_queue.size() > k) {
@@ -196,9 +198,9 @@ class Cluster {
          * Adds this cluster to the other cluster's adjacency set, and vice 
          * versa
          */
-        void AddConnection(Cluster& other) {
-            adjacency_set_.insert(&other);
-            other.adjacency_set_.insert(this);
+        void AddConnection(Cluster* other) {
+            adjacency_set_.insert(other);
+            other -> adjacency_set_.insert(this);
         }
 
         /**
@@ -206,9 +208,9 @@ class Cluster {
          * Removes this cluster from other cluster's adjacency set, and vice 
          * versa
          */
-        void SeverConnection(Cluster& other) {
-            adjacency_set_.erase(&other);
-            other.adjacency_set_.erase(this);
+        void SeverConnection(Cluster* other) {
+            adjacency_set_.erase(other);
+            other -> adjacency_set_.erase(this);
         }
 
         /**
@@ -228,7 +230,7 @@ class Cluster {
                 return isolated_nodes;
             }
 
-            NodeType* closest_existing = FindNearestNode(node -> GetCoords());
+            NodeType* closest_existing = FindNearestNode(node -> GetCoords(), true);
 
             if (closest_existing != nullptr) {
                 double distance = closest_existing -> DistanceToNode(node);

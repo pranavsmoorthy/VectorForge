@@ -3,6 +3,8 @@
 #include <string>
 #include <stdexcept>
 
+#include <iostream>
+
 #include "../include/vectorforge/node.h"
 #include "../include/vectorforge/vector_base.h"
 
