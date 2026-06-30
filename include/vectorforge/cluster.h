@@ -25,6 +25,11 @@ namespace exceptions {
         throw std::logic_error(
             "Node already exists in a graph, sever all connections to this node to add to a new graph");
     }
+
+    inline void ThrowCouldNotFindNode() {
+        throw std::logic_error(
+            "Could not find node in graph");
+    }
 }
 
 template <typename DataType, typename DistanceType, std::size_t Dimensions,
@@ -219,7 +224,7 @@ class Cluster {
          * isolated nodes / groups of nodes
          */
         std::vector<NodeType*> AddNode(NodeType* node) {
-            if ((node -> GetAdjacencySet()).size() != 0) {
+            if ((node -> GetAdjacencySet()).size() != 0 || node -> IsDead()) {
                 exceptions::ThrowNodeExistsInGraph();
             }
 
@@ -292,6 +297,30 @@ class Cluster {
             }
 
             return isolated_nodes;
+        }
+
+        /**
+         * Remove Node:
+         * Marks the node as dead, but does not delete it
+         */
+        void DeleteNode(NodeType* node) {
+            NodeType* existing_node = FindNearestNode(node -> GetCoords());
+
+            if (existing_node -> DistanceToNode(node) <= 1e-9) {
+                existing_node -> MarkDead();
+            } else {
+                exceptions::ThrowCouldNotFindNode();
+            }
+        }
+
+        void DeleteNode(const std::array<DistanceType, Dimensions>& query_coordinates) {
+            NodeType* existing_node = FindNearestNode(query_coordinates);
+
+            if (existing_node -> DistanceToCoords(query_coordinates) <= 1e-9) {
+                existing_node -> MarkDead();
+            } else {
+                exceptions::ThrowCouldNotFindNode();
+            }
         }
 
     private:

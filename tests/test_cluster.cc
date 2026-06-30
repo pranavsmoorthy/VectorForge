@@ -111,7 +111,7 @@ TEST_CASE("Cluster: Multi-Node Search Routing", "[cluster]") {
 
     // Set Node A as the entry point for the cluster
     cluster.AddNode(nodeA);
-    
+
     // Manually link the nodes to form a traversable graph: A <-> B <-> C <-> D
     nodeA->AddConnection(nodeB);
     nodeB->AddConnection(nodeC);
@@ -265,6 +265,42 @@ TEST_CASE("Cluster: Dynamic AddNode Connection Logic", "[cluster]") {
         // Clean up the resurrectingNode pointer! Because your Cluster simply took its payload
         // and resurrected the old node, the new Node object itself was rejected and must be deleted.
         delete resurrectingNode;
+    }
+}
+
+TEST_CASE("Cluster: DeleteNode (Soft Deletion by Coordinates)", "[cluster]") {
+    TestCluster cluster;
+
+    TestNode* nodeA = new TestNode(new TestVector({0.0, 0.0}, "Origin"));
+    TestNode* nodeB = new TestNode(new TestVector({5.0, 5.0}, "Target Node"));
+
+    cluster.AddNode(nodeA);
+    cluster.AddNode(nodeB);
+
+    SECTION("Successfully deletes (marks dead) an existing node") {
+        REQUIRE(nodeB->IsDead() == false);
+
+        // Create a temporary node with the exact same coordinates to pass into DeleteNode
+        TestNode* queryNode = new TestNode(new TestVector({5.0, 5.0}, "Query"));
+        
+        cluster.DeleteNode(queryNode);
+
+        // Verify that the actual node in the graph was correctly identified and marked dead
+        REQUIRE(nodeB->IsDead() == true);
+
+        delete queryNode;
+    }
+
+    SECTION("Throws an exception when deleting a node that doesn't exist") {
+        // Because your threshold currently says 1e9 (1 billion), we put this dummy node 
+        // extremely far away (2 billion) to ensure it triggers the ThrowCouldNotFindNode exception!
+        // (If you fix your code to 1e-9, this test will still pass perfectly).
+        TestNode* farNode = new TestNode(new TestVector({2e9, 2e9}, "Far Node"));
+
+        // Use Catch2's REQUIRE_THROWS to catch your exceptions::ThrowCouldNotFindNode()
+        REQUIRE_THROWS(cluster.DeleteNode(farNode));
+
+        delete farNode;
     }
 }
 
