@@ -179,7 +179,9 @@ class Node {
                         }
                     }
 
-                    delete this;
+                    for (Node* n : adjacency_set_) {
+                        SeverConnection(n);
+                    }
                 }
             }
         }

@@ -55,7 +55,7 @@ TEST_CASE("Node: Adding and Severing Connections", "[node]") {
 
         // The 4th connection should throw the logic_error we defined
         REQUIRE_THROWS_AS(nodeA.AddConnection(&nodeE), std::logic_error);
-    }
+    } 
 }
 
 TEST_CASE("Node: Move Semantics and Neighbor Pointer Updates", "[node]") {

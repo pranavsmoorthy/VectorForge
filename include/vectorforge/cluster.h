@@ -46,10 +46,11 @@ class Cluster {
 
         /**
          * Destructor:
-         * Deletes all nodes
+         * Deletes head pointer only because iterating through all nodes can
+         * lead to the entire graph getting deleted.
          */
         ~Cluster() {
-            
+            delete head_;
         }
 
         Cluster(const Cluster& other) = delete;
@@ -307,6 +308,22 @@ class Cluster {
             NodeType* existing_node = FindNearestNode(node -> GetCoords());
 
             if (existing_node -> DistanceToNode(node) <= 1e-9) {
+                if (existing_node == head_) {
+                        std::unordered_set<NodeType*> node_set = existing_node -> GetAdjacencySet();
+
+                        if (node_set.empty()) {
+                            delete this;
+                        }
+
+                        for (NodeType* n : node_set) {
+                            if (!(n -> IsDead())) {
+                                head_ = n;
+                            }
+                        }
+                    }
+
+                    existing_node -> MarkDead();
+
                 existing_node -> MarkDead();
             } else {
                 exceptions::ThrowCouldNotFindNode();
@@ -319,6 +336,20 @@ class Cluster {
 
                 if (existing_node -> DistanceToCoords(
                     query_coordinates) <= 1e-9) {
+                        if (existing_node == head_) {
+                            std::unordered_set<NodeType*> node_set = existing_node -> GetAdjacencySet();
+
+                            if (node_set.empty()) {
+                                delete this;
+                            }
+
+                            for (NodeType* n : node_set) {
+                                if (!(n -> IsDead())) {
+                                    head_ = n;
+                                }
+                            }
+                        }
+
                         existing_node -> MarkDead();
                 } else {
                     exceptions::ThrowCouldNotFindNode();
