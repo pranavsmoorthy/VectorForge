@@ -2,6 +2,7 @@
 #define VF_INCLUDE_CLUSTER_H_
 
 #include "node.h"
+#include "graph.h"
 #include "vector_base.h"
 
 #include <unordered_set>
@@ -22,6 +23,11 @@ namespace exceptions {
     }
 
     inline void ThrowNodeExistsInGraph() {
+        throw std::logic_error(
+            "Node already exists in a graph");
+    }
+
+    inline void ThrowCannotAddDeadNode() {
         throw std::logic_error(
             "Node already exists in a graph, sever all connections to this node to add to a new graph");
     }
@@ -241,7 +247,11 @@ class Cluster {
          * isolated nodes / groups of nodes
          */
         std::vector<NodeType*> AddNode(NodeType* node) {
-            if ((node -> GetAdjacencySet()).size() != 0 || node -> IsDead()) {
+            if (node -> IsDead()) {
+                exceptions::ThrowCannotAddDeadNode();
+            }
+
+            if (!(node -> GetAdjacencySet()).empty()) {
                 exceptions::ThrowNodeExistsInGraph();
             }
 
@@ -373,6 +383,8 @@ class Cluster {
         }
 
     private:
+        friend class graph::Graph;
+
         /**
          * Start Node:
          * Serves as the default entry node for the cluster, makes sure that all 
@@ -385,6 +397,85 @@ class Cluster {
          * A set of the clusters this cluster hasa connection to
          */
         std::unordered_set<Cluster*> adjacency_set_;
+
+        /**
+         * 
+         */
+        std::vector<NodeType*> AddNodeUnrestricted(NodeType* node) {
+            if (node -> IsDead()) {
+                exceptions::ThrowCannotAddDeadNode();
+            }
+
+            std::vector<NodeType*> isolated_nodes;
+
+            if (head_ == nullptr) {
+                head_ = node;
+                return isolated_nodes;
+            }
+
+            NodeType* closest_existing = FindNearestNode(node -> GetCoords(), true);
+
+            if (closest_existing != nullptr) {
+                double distance = closest_existing -> DistanceToNode(node);
+
+                if (distance < 1e-9) { 
+                    if (closest_existing -> IsDead()) {
+                        closest_existing -> ResurrectNode(node -> GetData());
+                        return isolated_nodes;
+                    }
+
+                    exceptions::ThrowNodeWithCoordExist();
+                }
+            }
+
+            std::vector<NodeType*> nearest_k_nodes = FindNearestKNodes(
+                node -> GetCoords(), MaxConnectionsForNodes);
+
+            bool connection_severed = false;
+
+            for (NodeType* n : nearest_k_nodes) {
+                if (n -> AtConnectionLimit()) {
+                    std::unordered_set<NodeType*> node_adjacency_set = 
+                        n -> GetAdjacencySet();
+
+                    NodeType* furthest_node = nullptr;
+                    double max_distance = 0.0;
+
+                    for (NodeType* a : node_adjacency_set) {
+                        double current_distance = n -> DistanceToNode(a);
+
+                        if (current_distance > max_distance) {
+                            max_distance = current_distance;
+                            furthest_node = a;
+                        }
+                    }
+
+                    if (n -> DistanceToNode(node) < max_distance) {
+                        n -> SeverConnection(furthest_node);
+
+                        if (!connection_severed) {
+                            connection_severed = true;
+                        }
+
+                        if (std::find(isolated_nodes.begin(), isolated_nodes.end(), furthest_node) == isolated_nodes.end() 
+                            && furthest_node != FindNearestNode(furthest_node -> GetCoords())) {
+                                isolated_nodes.push_back(furthest_node);
+                        }
+
+                        node -> AddConnection(n);
+                    }
+                } else {
+                    node -> AddConnection(n);
+                }                
+            }
+
+            if ((node -> GetAdjacencySet()).empty() 
+                || (connection_severed && node != FindNearestNode(node -> GetCoords()))) {
+                    isolated_nodes.push_back(node);
+            }
+
+            return isolated_nodes;
+        }
 };
 
 }

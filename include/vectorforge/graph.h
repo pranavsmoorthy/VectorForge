@@ -7,6 +7,7 @@
 
 #include <unordered_set>
 #include <array>
+#include <vector>
 
 namespace vectorforge {
 namespace graph {
@@ -33,6 +34,9 @@ class Graph {
 
         }
 
+        /**
+         * 
+         */
         void AddNode(const DataType& data, const CoordinateArray& coords) {
             VectorType* new_vector = new VectorType(coords, data);
             NodeType* new_node = new NodeType(new_vector);
@@ -40,8 +44,33 @@ class Graph {
             if (head_ == nullptr) {
                 head_ = new ClusterType();
                 head_ -> AddNode(new_node);
+            } else if (head_ -> GetAdjacencySet().empty()) {
+                std::vector<NodeType*> isolated_nodes = head_ -> AddNode(new_node);
+
+                if (!isolated_nodes.empty()) {
+                    double max_distance = 0.0;
+                    NodeType* farthest_node = nullptr;
+
+                    for (NodeType* n : isolated_nodes) {
+                        double current_distance = n -> DistanceToNode(head_ -> GetHeadNode());
+
+                        if (current_distance > max_distance) {
+                            max_distance = current_distance;
+                            farthest_node = n;
+                        }
+                    }
+
+                    ClusterType* new_cluster = new ClusterType();
+                    new_cluster -> AddConnection(head_);
+                    new_cluster -> AddNodeUnrestricted(farthest_node);
+                    isolated_nodes.erase(farthest_node);
+
+                    for (NodeType n : isolated_nodes) {
+                        AddNode(n);
+                    }
+                }
             } else {
-                // other stuff
+                // Parallel process multiple clusters
             }
         }
 

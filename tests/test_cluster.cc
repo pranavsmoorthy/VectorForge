@@ -43,7 +43,7 @@ TEST_CASE("Cluster: AddNode Exception Handling", "[cluster]") {
     nodeA -> AddConnection(nodeB);
 
     // Attempting to add a node that already has connections should trigger 
-    // the exceptions::ThrowNodeExistsInGraph() logic!
+    // the exceptions::ThrowCannotAddDeadNode() logic!
     REQUIRE_THROWS_AS(cluster.AddNode(nodeA), std::logic_error);
     
     // Clean up our manual nodes
@@ -77,7 +77,7 @@ TEST_CASE("Cluster: Empty / Single Node Search Behaviors", "[cluster]") {
     std::array<double, 2> query = {5.0, 5.0};
 
     SECTION("Searching an empty cluster safely returns empty/null") {
-        REQUIRE(cluster.FindNearestNode(query) == nullptr);
+        REQUIRE(cluster.FindNearestNode(query, false) == nullptr);
         
         auto k_results = cluster.FindNearestKNodes(query, 3);
         REQUIRE(k_results.empty());
@@ -88,7 +88,7 @@ TEST_CASE("Cluster: Empty / Single Node Search Behaviors", "[cluster]") {
         cluster.AddNode(head_node);
 
         // Single Nearest Node
-        TestNode* result = cluster.FindNearestNode(query);
+        TestNode* result = cluster.FindNearestNode(query, false);
         REQUIRE(result != nullptr);
         REQUIRE(result->GetData() == "Origin");
 
@@ -121,7 +121,7 @@ TEST_CASE("Cluster: Multi-Node Search Routing", "[cluster]") {
         // Query coordinate closer to Node C (2.0, 2.0)
         std::array<double, 2> query = {2.1, 2.1};
         
-        auto* result = cluster.FindNearestNode(query);
+        auto* result = cluster.FindNearestNode(query, false);
         
         // The search should traverse A -> B -> C and stop at C as the local minimum
         REQUIRE(result != nullptr);
@@ -289,7 +289,7 @@ TEST_CASE("Cluster: Optional Dead Node Inclusion in Search", "[cluster]") {
         
         // Because include_dead_nodes defaults to false, it should completely ignore B
         // and return one of the alive nodes (A or C).
-        TestNode* result = cluster.FindNearestNode(query); 
+        TestNode* result = cluster.FindNearestNode(query, false); 
         
         REQUIRE(result != nullptr);
         REQUIRE(result->IsDead() == false);
